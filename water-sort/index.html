@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Water Sort — GameZone</title>
+  <link rel="stylesheet" href="/css/shared/tokens.css">
+  <link rel="stylesheet" href="/css/shared/components.css">
+  <link rel="stylesheet" href="/css/site.css">
+  <style>
+    .bottles {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+    .bottle {
+      width: 60px;
+      height: 180px;
+      border: 3px solid white;
+      border-top: none;
+      border-radius: 0 0 12px 12px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      background: rgba(255,255,255,0.05);
+    }
+    .bottle.selected {
+      border-color: #facc15;
+      box-shadow: 0 0 20px rgba(250, 204, 21, 0.6);
+    }
+    .water-layer {
+      height: 25%;
+      width: 100%;
+      transition: transform 0.2s ease;
+    }
+    .controls {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <div class="game-header">
+      <a href="/" class="back-btn">← Back</a>
+      <h1>💧 Water Sort</h1>
+      <span id="moves">Moves: 0</span>
+    </div>
+    <div class="bottles" id="bottles"></div>
+    <div class="controls">
+      <button id="reset">New Game</button>
+    </div>
+  </div>
+
+  <script>
+    const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#8b5cf6'];
+    const NUM_BOTTLES = 6;
+    const LAYERS_PER_BOTTLE = 4;
+
+    let bottles = [];
+    let selected = null;
+    let moves = 0;
+
+    function initGame() {
+      moves = 0;
+      selected = null;
+      document.getElementById('moves').textContent = 'Moves: 0';
+      // Fill first N-2 bottles with colored water
+      const colorPool = [];
+      for (let i = 0; i < NUM_BOTTLES - 2; i++) {
+        for (let j = 0; j < LAYERS_PER_BOTTLE; j++) {
+          colorPool.push(colors[i]);
+        }
+      }
+      // Shuffle
+      for (let i = colorPool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [colorPool[i], colorPool[j]] = [colorPool[j], colorPool[i]];
+      }
+      bottles = [];
+      let idx = 0;
+      for (let i = 0; i < NUM_BOTTLES - 2; i++) {
+        bottles.push(colorPool.splice(0, LAYERS_PER_BOTTLE));
+      }
+      // Empty bottles
+      bottles.push([]);
+      bottles.push([]);
+      render();
+    }
+
+    function render() {
+      const container = document.getElementById('bottles');
+      container.innerHTML = '';
+      bottles.forEach((layers, i) => {
+        const b = document.createElement('div');
+        b.className = 'bottle' + (selected === i ? ' selected' : '');
+        b.onclick = () => clickBottle(i);
+        layers.forEach(c => {
+          const l = document.createElement('div');
+          l.className = 'water-layer';
+          l.style.background = c;
+          b.appendChild(l);
+        });
+        container.appendChild(b);
+      });
+    }
+
+    function clickBottle(i) {
+      if (selected === null) {
+        if (bottles[i].length > 0) selected = i;
+      } else if (selected === i) {
+        selected = null;
+      } else {
+        pour(selected, i);
+        selected = null;
+      }
+      render();
+      checkWin();
+    }
+
+    function pour(from, to) {
+      if (bottles[from].length === 0) return;
+      if (bottles[to].length === LAYERS_PER_BOTTLE) return;
+      if (bottles[to].length > 0 && bottles[to].at(-1) !== bottles[from].at(-1)) return;
+      const color = bottles[from].pop();
+      bottles[to].push(color);
+      moves++;
+      document.getElementById('moves').textContent = 'Moves: ' + moves;
+      // Continue pouring if top is same
+      while (bottles[from].length > 0 && bottles[to].length < LAYERS_PER_BOTTLE && bottles[from].at(-1) === bottles[to].at(-1)) {
+        bottles[to].push(bottles[from].pop());
+      }
+    }
+
+    function checkWin() {
+      const won = bottles.every(b => {
+        if (b.length === 0) return true;
+        if (b.length !== LAYERS_PER_BOTTLE) return false;
+        return b.every(c => c === b[0]);
+      });
+      if (won) setTimeout(() => alert(`🎉 You won in ${moves} moves!`), 200);
+    }
+
+    document.getElementById('reset').onclick = initGame;
+    initGame();
+  </script>
+</body>
+</html>
